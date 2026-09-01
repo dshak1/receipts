@@ -1,0 +1,47 @@
+# Stable demo: a full checkout flow on the SauceDemo test shop.
+# Expected to pass near-100 percent; proves the harness observes correctly.
+id: demo-checkout
+goal: >
+  Log in to the demo shop at the starting page with username "standard_user"
+  and password "secret_sauce". Add the "Sauce Labs Backpack" to the cart, go
+  to the cart, click Checkout, fill first name "Jane", last name "Doe", zip
+  "94105", continue, and finish the order. You are done when the page says
+  "Thank you for your order!".
+
+env:
+  kind: browser
+  startUrl: https://www.saucedemo.com
+
+agent:
+  adapter: computer-use
+  maxSteps: 25
+  scriptedFlow: flows/checkout.ts
+
+checks:
+  - type: url
+    matches: "checkout-complete"
+  - type: dom
+    selector: ".complete-header"
+    textContains: "Thank you for your order"
+  - type: judge
+    rubric: >
+      Based on the final screenshot, did the run end on an order confirmation
+      page of the shop (not the login page, not the cart)?
+    weight: advisory
+
+trials:
+  n: 10
+  concurrency: 5
+  positiveControl: true
+
+timeouts:
+  trialSeconds: 240
+  stepSeconds: 30
+
+budget:
+  maxUsd: 5
+  maxTotalMinutes: 25
+
+gate:
+  minVerifiedRate: 0.8
+  maxFalsePositiveRate: 0.1

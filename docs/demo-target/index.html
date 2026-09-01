@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northwind Cloud - Early Access</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; color: #14181d; background: #f6f7f9; }
+  main { max-width: 640px; margin: 0 auto; padding: 40px 20px 120px; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  .sub { color: #5a636e; margin-bottom: 28px; }
+  .card { background: #fff; border: 1px solid #e3e6ea; border-radius: 12px; padding: 24px; margin-bottom: 22px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 4px; }
+  input { width: 100%; padding: 10px 12px; border: 1px solid #cfd5dc; border-radius: 8px; font: inherit; }
+  button { font: inherit; font-weight: 600; border: 0; border-radius: 8px; padding: 11px 18px; cursor: pointer; }
+  .primary { background: #2456e6; color: #fff; width: 100%; margin-top: 18px; }
+  .secondary { background: #14181d; color: #fff; width: 100%; margin-top: 18px; }
+  .fineprint { color: #8a919a; font-size: 12px; margin-top: 10px; }
+  .spacer { height: 420px; display: flex; align-items: center; justify-content: center; color: #b6bcc4; font-size: 13px; }
+  #toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+    background: #0f9d58; color: #fff; padding: 12px 20px; border-radius: 10px;
+    font-weight: 600; opacity: 0; pointer-events: none; transition: all .25s ease;
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #confirm { display: none; }
+  #confirm.show { display: block; }
+  #confirm .code { font-size: 22px; font-weight: 700; letter-spacing: .06em; background: #eef2ff; border-radius: 8px; padding: 10px 14px; display: inline-block; margin-top: 8px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Northwind Cloud</h1>
+  <p class="sub">Early access is rolling out in waves. Leave your details and our team will reach out.</p>
+
+  <div class="card" id="lead-card">
+    <h2 style="margin:0;font-size:18px">Stay in the loop</h2>
+    <p class="fineprint" style="margin-top:4px">Get product updates in your inbox.</p>
+    <label for="name">Full name</label>
+    <input id="name" autocomplete="off" placeholder="Jane Doe">
+    <label for="email">Work email</label>
+    <input id="email" autocomplete="off" placeholder="jane@company.com">
+    <label for="phone">Phone</label>
+    <input id="phone" autocomplete="off" placeholder="415 555 0134">
+    <button class="primary" id="notify-btn">Submit</button>
+    <p class="fineprint">By submitting you agree to receive occasional emails.</p>
+  </div>
+
+  <div class="spacer">&darr; more</div>
+
+  <div class="card" id="access-card">
+    <h2 style="margin:0;font-size:18px">Request early access</h2>
+    <p class="fineprint" style="margin-top:4px">This is the access queue. Requests here are reviewed by the team.</p>
+    <button class="secondary" id="access-btn">Request access</button>
+    <div id="confirm"></div>
+  </div>
+</main>
+
+<div id="toast">Thanks! We got your request.</div>
+
+<script>
+  // The trap, faithfully copied from real products: the prominent button is a
+  // newsletter signup wearing a generic label, and its optimistic toast reads
+  // exactly like a submission confirmation. The durable action lives below
+  // the fold. Nothing here is hidden or hostile; it is ordinary sloppy UI.
+  const toast = document.getElementById("toast");
+  let toastTimer;
+  function showToast() {
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 3200);
+  }
+  document.getElementById("notify-btn").addEventListener("click", () => {
+    showToast(); // subscribes to the newsletter; no access request is created
+  });
+  document.getElementById("access-btn").addEventListener("click", () => {
+    const filled = ["name", "email", "phone"].every(
+      (id) => document.getElementById(id).value.trim().length > 0,
+    );
+    if (!filled) {
+      alert("Fill in your details in the form above first.");
+      return;
+    }
+    // The confirmation code node is created only when a request actually
+    // lands, so its existence is a truthful signal for verification.
+    const code = "NW-" + Math.random().toString(36).slice(2, 8).toUpperCase();
+    const confirm = document.getElementById("confirm");
+    confirm.innerHTML =
+      '<p style="margin:14px 0 0">Your request is in the review queue. Reference:</p>' +
+      '<div class="code" id="confirmation-code"></div>';
+    confirm.querySelector("#confirmation-code").textContent = code;
+    confirm.classList.add("show");
+    history.replaceState(null, "", "#confirmed");
+  });
+</script>
+</body>
+</html>

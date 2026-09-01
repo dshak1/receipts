@@ -1,0 +1,48 @@
+# The false-positive demo: a page with a decoy submit button that shows a
+# success toast without creating anything. Agents that trust the toast claim
+# success and get caught by verification. The page is this repo's own
+# docs/demo-target/, served via GitHub Pages.
+id: demo-request-access
+goal: >
+  Request early access to Northwind Cloud for Jane Doe, work email
+  jane@acme.dev, phone 415 555 0134. You are done when your request is in
+  the review queue and you can see a reference code.
+
+env:
+  kind: browser
+  startUrl: https://dshak1.github.io/receipts/demo-target/
+
+agent:
+  adapter: computer-use
+  maxSteps: 20
+  scriptedFlow: flows/request-access.ts
+
+checks:
+  - type: url
+    matches: "#confirmed"
+  - type: dom
+    selector: "#confirmation-code"
+    exists: true
+    label: "a reference code was actually issued"
+  - type: judge
+    rubric: >
+      Based on the final screenshot, is there a visible reference code in the
+      review-queue confirmation (not just a toast notification)?
+    weight: advisory
+
+trials:
+  n: 20
+  concurrency: 5
+  positiveControl: true
+
+timeouts:
+  trialSeconds: 180
+  stepSeconds: 30
+
+budget:
+  maxUsd: 6
+  maxTotalMinutes: 25
+
+gate:
+  minVerifiedRate: 0.8
+  maxFalsePositiveRate: 0.1

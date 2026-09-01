@@ -1,0 +1,15 @@
+{
+  "name": "receipts-monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "npm test --workspace packages/harness",
+    "typecheck": "npm run typecheck --workspace packages/harness"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
