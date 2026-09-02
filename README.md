@@ -8,6 +8,8 @@
 
 [Open the product landing page](https://dshak1.github.io/receipts/) · [Landing design handoff](site/README.md)
 
+[Agent handoff](HANDOFF-SOLARI.md) — implementation status, commands, provenance, and next steps.
+
 > Your agent said it succeeded. Did it? Show me the receipts.
 
 ## The problem
