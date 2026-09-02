@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-import { readFile } from "node:fs/promises";
+import { appendFile, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { Command } from "commander";
 import { loadSpec } from "./spec/load.js";
 import { runSuite } from "./run/orchestrator.js";
 import { renderReport } from "./report/render.js";
 import { fmtPct } from "./run/stats.js";
+import { recoverJournal, SolariPool } from "./run/session.js";
+import { preflightAnthropic } from "./adapters/providers/anthropic.js";
 
 const program = new Command();
 program
@@ -35,6 +37,18 @@ interface RunFlags {
 async function doRun(specPath: string, flags: RunFlags, gateMode: boolean) {
   const apiKey = requireApiKey();
   const loaded = await loadSpec(specPath);
+  const needsAnthropic =
+    loaded.spec.agent.adapter === "computer-use" ||
+    loaded.spec.checks.some((check) => check.type === "judge");
+  if (needsAnthropic) {
+    try {
+      await preflightAnthropic();
+    } catch (err) {
+      throw new Error(
+        `Anthropic preflight failed before any Solari sessions were opened: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
   const overrides = {
     ...(flags.trials !== undefined ? { n: Number(flags.trials) } : {}),
     ...(flags.concurrency !== undefined
@@ -50,6 +64,7 @@ async function doRun(specPath: string, flags: RunFlags, gateMode: boolean) {
     log: (line) => console.log(line),
   });
   const { indexHtml } = await renderReport(report, resolve(flags.out, report.runId));
+  await writeGitHubIntegration(report, indexHtml);
 
   const s = report.stats;
   console.log("");
@@ -68,6 +83,49 @@ async function doRun(specPath: string, flags: RunFlags, gateMode: boolean) {
     `gate:      ${report.gate.passed ? "PASS" : `FAIL (${report.gate.failures.join("; ")})`}`,
   );
   if (gateMode && !report.gate.passed) process.exit(1);
+}
+
+async function writeGitHubIntegration(
+  report: Awaited<ReturnType<typeof runSuite>>,
+  reportPath: string,
+): Promise<void> {
+  const output = process.env.GITHUB_OUTPUT;
+  if (output) {
+    await appendFile(
+      output,
+      [
+        `run_id=${report.runId}`,
+        `verified_rate=${report.stats.verifiedRate}`,
+        `false_positive_rate=${report.stats.falsePositiveRate}`,
+        `gate_passed=${report.gate.passed}`,
+        `report_path=${reportPath}`,
+        "",
+      ].join("\n"),
+    );
+  }
+  const summary = process.env.GITHUB_STEP_SUMMARY;
+  if (summary) {
+    await appendFile(
+      summary,
+      [
+        "## receipts reliability gate",
+        "",
+        `**${report.gate.passed ? "PASS" : "FAIL"}** for \`${report.spec.id}\``,
+        "",
+        "| Metric | Result |",
+        "| --- | ---: |",
+        `| Verified | ${report.stats.verified}/${report.stats.counted} (${fmtPct(report.stats.verifiedRate)}) |`,
+        `| False positives | ${report.stats.falsePositives} (${fmtPct(report.stats.falsePositiveRate)} of success claims) |`,
+        `| Cost | $${report.stats.totalUsd.toFixed(2)} |`,
+        `| Run | \`${report.runId}\` |`,
+        "",
+        report.gate.failures.length
+          ? `Gate failures: ${report.gate.failures.join("; ")}`
+          : "Every configured gate passed.",
+        "",
+      ].join("\n"),
+    );
+  }
 }
 
 program
@@ -102,37 +160,56 @@ program
   });
 
 program
-  .command("sweep")
-  .description("list and release any Solari sessions this key still holds")
-  .action(async () => {
-    requireApiKey();
-    // The browser SDK exposes sessions via the client; import lazily so the
-    // other commands do not pay for it.
-    const { Solari } = await import("@solarisdk/browser");
-    const solari = new Solari({ apiKey: process.env.SOLARI_API_KEY! });
+  .command("doctor")
+  .description("validate provider auth and one recorded Solari browser lifecycle")
+  .option("-o, --out <dir>", "directory for the crash journal", "runs")
+  .action(async (flags: { out: string }) => {
+    const apiKey = requireApiKey();
+    process.stdout.write("Anthropic credentials... ");
+    await preflightAnthropic();
+    console.log("ok");
+    process.stdout.write("Solari launch, navigation, screenshot, release... ");
+    const pool = new SolariPool(apiKey, resolve(flags.out, ".active-sessions.json"));
+    let session;
+    let replay = false;
     try {
-      const sessions = await (
-        solari as unknown as {
-          sessions: { list(): Promise<{ id: string; status: string }[]> };
-        }
-      ).sessions.list();
-      const active = sessions.filter((s) => s.status === "active" || s.status === "running");
-      if (active.length === 0) {
-        console.log("no active sessions.");
-        return;
-      }
-      for (const s of active) {
-        console.log(`releasing ${s.id} (${s.status})`);
-        await (
-          solari as unknown as {
-            sessions: { release(id: string): Promise<void> };
-          }
-        ).sessions.release(s.id).catch((err: unknown) => {
-          console.error(`  failed: ${err instanceof Error ? err.message : String(err)}`);
-        });
-      }
+      session = await pool.openSession({
+        kind: "browser",
+        startUrl: "https://example.com",
+        viewport: { width: 1280, height: 800 },
+        recording: true,
+        stealth: false,
+      });
+      await session.page.goto("https://example.com", {
+        waitUntil: "domcontentloaded",
+        timeout: 30_000,
+      });
+      await session.page.screenshot({ type: "jpeg", quality: 40 });
+      const id = session.id;
+      await session.close();
+      session = undefined;
+      replay = Boolean(
+        await pool.downloadReplay(id, { attempts: 8, delayMs: 2_000 }),
+      );
     } finally {
-      await solari.close();
+      await session?.close().catch(() => {});
+      await pool.shutdown().catch(() => {});
+    }
+    console.log(replay ? "ok (replay captured)" : "ok (replay still processing)");
+  });
+
+program
+  .command("recover")
+  .description("release sessions recorded in a local crash journal")
+  .option("-o, --out <dir>", "run output root containing the journal", "runs")
+  .action(async (flags: { out: string }) => {
+    const journal = resolve(flags.out ?? "runs", ".active-sessions.json");
+    const result = await recoverJournal(requireApiKey(), journal);
+    console.log(`journal sessions: ${result.found}`);
+    console.log(`released:         ${result.released}`);
+    if (result.failed.length > 0) {
+      console.error(`failed:           ${result.failed.length}`);
+      process.exitCode = 1;
     }
   });
 

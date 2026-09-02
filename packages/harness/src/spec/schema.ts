@@ -87,7 +87,7 @@ export const checkSchema = z.discriminatedUnion("type", [
 
 export const trialsSchema = z.object({
   n: z.number().int().min(1).max(100).default(10),
-  concurrency: z.number().int().min(1).max(20).default(5),
+  concurrency: z.number().int().min(1).max(20).default(3),
   // Trial 0 always runs the scripted flow as a deterministic baseline.
   // If it fails, the whole run is voided as ENV_ERROR: the environment is
   // broken and the agent was never actually judged.

@@ -6,8 +6,10 @@
     "packages/*"
   ],
   "scripts": {
+    "build": "npm run build --workspace packages/harness",
     "test": "npm test --workspace packages/harness",
-    "typecheck": "npm run typecheck --workspace packages/harness"
+    "typecheck": "npm run typecheck --workspace packages/harness",
+    "check": "npm run typecheck && npm test && npm run build"
   },
   "engines": {
     "node": ">=22"

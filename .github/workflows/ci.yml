@@ -16,3 +16,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
       - run: npm test
+      - run: npm run build
+      - run: npm audit --omit=dev --audit-level=high
+      - name: Verify package contents
+        run: npm pack --workspace packages/harness --dry-run

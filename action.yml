@@ -1,0 +1,67 @@
+name: receipts reliability gate
+description: Run a computer-use task repeatedly on Solari and gate CI on independently verified outcomes.
+branding:
+  icon: check-circle
+  color: purple
+inputs:
+  spec:
+    description: Path to the receipts task YAML in the caller repository.
+    required: true
+  trials:
+    description: Number of agent trials.
+    required: false
+    default: "10"
+  concurrency:
+    description: Requested parallel Solari sessions. Account limits are retried as a queue.
+    required: false
+    default: "3"
+  budget-usd:
+    description: Stop scheduling trials after this estimated provider spend.
+    required: false
+    default: "5"
+  out:
+    description: Directory for run reports and evidence.
+    required: false
+    default: receipts-runs
+outputs:
+  run-id:
+    description: Generated receipts run ID.
+    value: ${{ steps.gate.outputs.run_id }}
+  verified-rate:
+    description: Independently verified success rate from 0 to 1.
+    value: ${{ steps.gate.outputs.verified_rate }}
+  false-positive-rate:
+    description: False positives divided by agent success claims.
+    value: ${{ steps.gate.outputs.false_positive_rate }}
+  gate-passed:
+    description: Whether every configured reliability gate passed.
+    value: ${{ steps.gate.outputs.gate_passed }}
+runs:
+  using: composite
+  steps:
+    - name: Install receipts
+      shell: bash
+      run: npm ci --prefix "$GITHUB_ACTION_PATH" --no-audit --no-fund && npm run build --prefix "$GITHUB_ACTION_PATH"
+    - name: Run reliability gate
+      id: gate
+      shell: bash
+      env:
+        RECEIPTS_SPEC: ${{ inputs.spec }}
+        RECEIPTS_TRIALS: ${{ inputs.trials }}
+        RECEIPTS_CONCURRENCY: ${{ inputs.concurrency }}
+        RECEIPTS_BUDGET: ${{ inputs.budget-usd }}
+        RECEIPTS_OUT: ${{ inputs.out }}
+      run: >-
+        node "$GITHUB_ACTION_PATH/packages/harness/dist/cli.js" gate "$RECEIPTS_SPEC"
+        --out "$RECEIPTS_OUT"
+        --trials "$RECEIPTS_TRIALS"
+        --concurrency "$RECEIPTS_CONCURRENCY"
+        --budget-usd "$RECEIPTS_BUDGET"
+    - name: Upload receipts evidence
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: receipts-evidence-${{ github.run_id }}
+        path: ${{ inputs.out }}
+        if-no-files-found: warn
+        retention-days: 30

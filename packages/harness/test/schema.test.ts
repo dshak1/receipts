@@ -13,7 +13,7 @@ describe("taskSpecSchema", () => {
   it("fills defaults", () => {
     const spec = taskSpecSchema.parse(minimal);
     expect(spec.trials.n).toBe(10);
-    expect(spec.trials.concurrency).toBe(5);
+    expect(spec.trials.concurrency).toBe(3);
     expect(spec.trials.positiveControl).toBe(true);
     expect(spec.env.recording).toBe(true);
     expect(spec.env.viewport).toEqual({ width: 1280, height: 800 });

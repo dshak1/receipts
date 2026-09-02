@@ -2,6 +2,10 @@
 
 **Reliability CI for computer-use agents.** Run the task N times on [Solari](https://www.getsolari.com) cloud browsers, verify every outcome independently of what the agent claims, and get a verdict you can defend.
 
+> The agent made a claim. The verifier checked reality.
+
+[Open the live demo target](https://dshak1.github.io/receipts/demo-target/) · [View the source](https://github.com/dshak1/receipts) · [Run it in CI](#github-action)
+
 > Your agent said it succeeded. Did it? Show me the receipts.
 
 ## The problem
@@ -42,12 +46,14 @@ cd receipts && npm install
 
 export SOLARI_API_KEY=slr_live_...      # console.getsolari.com
 export ANTHROPIC_API_KEY=sk-ant-...     # for the computer-use adapter and judge
+# Identity-linked Anthropic keys also need their Console workspace ID.
+export ANTHROPIC_WORKSPACE_ID=...       # omit for ordinary API keys
 
 # 10 trials of a checkout flow, 5 in parallel, with a scripted control
 npm run cli --workspace packages/harness -- run ../tasks/demo-checkout.yaml
 ```
 
-Open `runs/<run-id>/report.html` when it finishes. Everything the report shows is on disk next to it: `run.json`, per-trial `events.jsonl`, screenshots, and the rrweb replay.
+Open `runs/<run-id>/report.html` when it finishes. The report embeds screenshots and an rrweb replay player, so it remains useful when downloaded as one file. The evidence directory also contains `run.json`, per-trial `events.jsonl`, recordings, and `evidence-manifest.json` with SHA-256 digests.
 
 ## Task spec
 
@@ -81,7 +87,7 @@ checks:                        # all run; optional ones never gate
 
 trials:
   n: 20
-  concurrency: 5
+  concurrency: 3
   positiveControl: true
 
 budget:
@@ -99,7 +105,26 @@ gate:
 | `receipts run <spec>` | run the suite, write evidence and the report |
 | `receipts gate <spec>` | same, but exit 1 when the gate fails (CI mode) |
 | `receipts report <runDir>` | re-render the HTML report from run.json |
-| `receipts sweep` | list and release any Solari sessions the key still holds |
+| `receipts doctor` | validate provider auth and one recorded Solari browser lifecycle |
+| `receipts recover` | release sessions left in the local crash journal |
+
+## GitHub Action
+
+Add the action after `actions/checkout` and provide the two provider keys as repository secrets:
+
+```yaml
+- uses: dshak1/receipts@main
+  with:
+    spec: tasks/demo-request-access.yaml
+    trials: 20
+    concurrency: 3
+  env:
+    SOLARI_API_KEY: ${{ secrets.SOLARI_API_KEY }}
+    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    ANTHROPIC_WORKSPACE_ID: ${{ secrets.ANTHROPIC_WORKSPACE_ID }}
+```
+
+The action writes verified rate, false-positive rate, gate status, and the report path to GitHub outputs and uploads the complete evidence bundle as an artifact.
 
 ## Why Solari
 
@@ -113,6 +138,10 @@ The harness is a statistics machine, and statistics need samples. Samples are on
 - Model vs model benchmark: verified success rate, false-positive rate, and cost per verified success across CUA models on one task suite
 - Best-of-N branching on Solari sandbox snapshot forks: checkpoint before a risky step, fork the attempt, keep the verified winner
 - MCP server exposing `run_reliability_check` so any agent can order its own audit
+
+## What makes a result trustworthy
+
+Every run records the task-spec digest and git SHA, starts with a scripted positive control, runs deterministic checks independently of the agent claim, keeps advisory model judging separate from gating checks, and leaves a recoverable session journal. Environment failures are not silently converted into agent failures.
 
 ## Origins
 

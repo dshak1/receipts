@@ -1,5 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import pLimit from "p-limit";
 import type { LoadedSpec } from "../spec/load.js";
 import type { TaskSpec } from "../spec/schema.js";
@@ -8,8 +11,15 @@ import { computeStats, evaluateGate, type GateResult, type RunStats } from "./st
 import { runTrial, type TrialRecord } from "./trial.js";
 
 export interface RunReport {
+  schemaVersion: 1;
   runId: string;
   createdAt: string;
+  completedAt: string;
+  elapsedMs: number;
+  runStatus: "completed" | "voided";
+  gitSha?: string;
+  specDigest: string;
+  requestedConcurrency: number;
   spec: TaskSpec;
   control: TrialRecord | null;
   /** Agent trials only; the control is reported separately. */
@@ -30,6 +40,8 @@ export interface RunOptions {
 }
 
 export async function runSuite(opts: RunOptions): Promise<RunReport> {
+  const startedAt = new Date();
+  const startedMs = Date.now();
   const { loaded } = opts;
   const spec = loaded.spec;
   const log = opts.log ?? (() => {});
@@ -44,7 +56,7 @@ export async function runSuite(opts: RunOptions): Promise<RunReport> {
   const runDir = join(opts.outRoot, runId);
   await mkdir(runDir, { recursive: true });
 
-  const pool = new SolariPool(opts.apiKey);
+  const pool = new SolariPool(opts.apiKey, join(opts.outRoot, ".active-sessions.json"));
   const notes: string[] = [];
   let control: TrialRecord | null = null;
   let trials: TrialRecord[] = [];
@@ -130,8 +142,17 @@ export async function runSuite(opts: RunOptions): Promise<RunReport> {
     : evaluateGate(stats, spec.gate);
 
   const report: RunReport = {
+    schemaVersion: 1,
     runId,
-    createdAt: new Date().toISOString(),
+    createdAt: startedAt.toISOString(),
+    completedAt: new Date().toISOString(),
+    elapsedMs: Date.now() - startedMs,
+    runStatus: voided ? "voided" : "completed",
+    ...(await currentGitSha().then((gitSha) => (gitSha ? { gitSha } : {}))),
+    specDigest: createHash("sha256")
+      .update(JSON.stringify(spec))
+      .digest("hex"),
+    requestedConcurrency: concurrency,
     spec,
     control,
     trials,
@@ -142,6 +163,18 @@ export async function runSuite(opts: RunOptions): Promise<RunReport> {
   };
   await writeFile(join(runDir, "run.json"), JSON.stringify(report, null, 2));
   return report;
+}
+
+const execFileAsync = promisify(execFile);
+
+async function currentGitSha(): Promise<string | undefined> {
+  if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA;
+  try {
+    const { stdout } = await execFileAsync("git", ["rev-parse", "HEAD"]);
+    return stdout.trim() || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function makeBudgetStopped(index: number): TrialRecord {

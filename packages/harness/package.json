@@ -1,15 +1,29 @@
 {
-  "name": "@receipts/harness",
+  "name": "@dshak1/receipts",
   "version": "0.1.0",
-  "private": true,
+  "description": "Evidence-backed reliability CI for computer-use agents on Solari.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dshak1/receipts.git"
+  },
+  "homepage": "https://dshak1.github.io/receipts/",
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "bin": {
     "receipts": "dist/cli.js"
   },
   "scripts": {
+    "build": "tsc",
     "cli": "tsx src/cli.ts",
+    "prepack": "npm run build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0",
@@ -17,6 +31,7 @@
     "commander": "^12.1.0",
     "p-limit": "^6.1.0",
     "patchright-core": "^1.62.2",
+    "rrweb-player": "^2.1.1",
     "yaml": "^2.6.1",
     "zod": "^3.24.1"
   },
@@ -24,6 +39,6 @@
     "@types/node": "^22.10.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^4.1.11"
   }
 }

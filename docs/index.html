@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Receipts is reliability CI for computer-use agents. Independent verification for every claim of success.">
+<title>receipts | prove the agent finished</title>
+<style>
+:root { color-scheme: dark; --bg:#0b0b10; --panel:#14141d; --line:#2a2937; --ink:#f6f5ff; --muted:#a9a6b8; --accent:#8c7dff; --green:#4de09a; --red:#ff6969; }
+* { box-sizing:border-box; }
+body { margin:0; background:radial-gradient(circle at 80% -10%, #2a2058 0, transparent 38%), var(--bg); color:var(--ink); font:15px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,sans-serif; }
+a { color:inherit; }
+.wrap { max-width:1100px; margin:auto; padding:24px 22px 80px; }
+nav { display:flex; justify-content:space-between; align-items:center; margin-bottom:100px; }
+.logo { font-size:20px; font-weight:800; letter-spacing:-.05em; }
+nav .links { display:flex; gap:20px; color:var(--muted); font-size:13px; }
+.hero { max-width:870px; }
+.eyebrow { color:var(--accent); text-transform:uppercase; letter-spacing:.14em; font-size:12px; font-weight:800; }
+h1 { font-size:clamp(44px,8vw,88px); line-height:.98; letter-spacing:-.07em; margin:14px 0 26px; }
+.lede { color:var(--muted); font-size:19px; max-width:650px; }
+.actions { display:flex; flex-wrap:wrap; gap:12px; margin:30px 0 90px; }
+.button { display:inline-block; text-decoration:none; padding:11px 17px; border-radius:9px; font-weight:750; border:1px solid var(--line); }
+.button.primary { color:#0b0b10; background:var(--ink); border-color:var(--ink); }
+.button.secondary { color:var(--ink); background:var(--panel); }
+.proof { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:92px; }
+.card { background:rgba(20,20,29,.82); border:1px solid var(--line); border-radius:14px; padding:20px; }
+.card strong { display:block; font-size:16px; margin-bottom:6px; }
+.card p { color:var(--muted); margin:0; }
+.diagram { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin:20px 0 92px; }
+.step { position:relative; padding:18px; border:1px solid var(--line); border-radius:12px; background:var(--panel); }
+.step:not(:last-child)::after { content:'→'; position:absolute; right:-17px; top:35%; color:var(--accent); font-size:20px; z-index:1; }
+.num { color:var(--accent); font-size:12px; font-weight:800; }
+.step h3 { margin:10px 0 5px; font-size:15px; }
+.step p { color:var(--muted); font-size:13px; margin:0; }
+h2 { font-size:31px; letter-spacing:-.04em; margin:0 0 16px; }
+.cta { border:1px solid #423a87; background:linear-gradient(120deg,#1b1834,#151421); border-radius:16px; padding:32px; display:flex; align-items:center; justify-content:space-between; gap:24px; }
+.cta p { color:var(--muted); margin:5px 0 0; }
+footer { color:var(--muted); font-size:12px; margin-top:55px; }
+@media(max-width:700px){ nav{margin-bottom:65px}.links{display:none!important}.proof,.diagram{grid-template-columns:1fr}.step:not(:last-child)::after{content:'↓';right:48%;top:auto;bottom:-23px}.cta{display:block}.cta .button{margin-top:20px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav><a class="logo" href="https://github.com/dshak1/receipts">receipts</a><div class="links"><a href="https://github.com/dshak1/receipts">GitHub</a><a href="demo-target/">Live fixture</a><a href="https://getsolari.com">Solari</a></div></nav>
+<main>
+<section class="hero">
+<div class="eyebrow">Reliability CI for computer-use agents</div>
+<h1>Your agent said it succeeded.<br>Show me the receipts.</h1>
+<p class="lede">Run the same browser task repeatedly on isolated Solari sessions. Verify the real outcome independently of the agent’s narration. See every screenshot, replay every action, and gate releases on evidence.</p>
+<div class="actions"><a class="button primary" href="https://github.com/dshak1/receipts#quickstart">Run the quickstart</a><a class="button secondary" href="demo-target/">Open the false-positive fixture</a></div>
+</section>
+<section class="proof">
+<div class="card"><strong>Claims are not outcomes</strong><p>A green toast or a final click is not proof. Deterministic checks decide what happened.</p></div>
+<div class="card"><strong>Failures have a type</strong><p>False positive, silent success, agent failure, timeout, and environment error tell different stories.</p></div>
+<div class="card"><strong>Evidence travels with the run</strong><p>Portable HTML reports include screenshots, action logs, session replay, cost, and confidence intervals.</p></div>
+</section>
+<h2>One run. Four layers of proof.</h2>
+<section class="diagram">
+<div class="step"><div class="num">01 · CONTROL</div><h3>Prove the task is possible</h3><p>A deterministic positive control validates the environment before an agent is judged.</p></div>
+<div class="step"><div class="num">02 · EXECUTE</div><h3>Run isolated trials</h3><p>Fresh recorded Solari browsers make repeated trials practical and reproducible.</p></div>
+<div class="step"><div class="num">03 · VERIFY</div><h3>Check reality</h3><p>URL, DOM, and side-effect checks run after the agent reports its claim.</p></div>
+<div class="step"><div class="num">04 · GATE</div><h3>Ship on numbers</h3><p>Verified rate and false-positive rate become a CI decision, not a feeling.</p></div>
+</section>
+<section class="cta"><div><h2>Put your agent on trial.</h2><p>One YAML spec in. An evidence-backed verdict out.</p></div><a class="button primary" href="https://github.com/dshak1/receipts#task-spec">Read the task spec</a></section>
+</main>
+<footer>Built by Diar Shakimov for the Solari build challenge. Open source under MIT. <a href="https://github.com/dshak1/receipts">Source on GitHub</a>.</footer>
+</div>
+</body>
+</html>

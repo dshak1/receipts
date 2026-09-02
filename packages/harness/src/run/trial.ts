@@ -1,4 +1,5 @@
 import { ScriptedAdapter } from "../adapters/scripted.js";
+import { createHash } from "node:crypto";
 import { ComputerUseAdapter } from "../adapters/computer-use.js";
 import type { AgentAdapter, AgentResult } from "../adapters/types.js";
 import { EvidenceCollector, type EvidenceManifest } from "../evidence/collector.js";
@@ -24,6 +25,10 @@ export interface TrialRecord {
   sessionId: string;
   recordingFile?: string;
   error?: string;
+}
+
+function publicSessionRef(id: string): string {
+  return id ? `solari-${createHash("sha256").update(id).digest("hex").slice(0, 12)}` : "";
 }
 
 function pickAdapter(name: string): AgentAdapter {
@@ -194,7 +199,7 @@ export async function runTrial(opts: TrialOptions): Promise<TrialRecord> {
     evidence: manifest,
     wallMs: Date.now() - started,
     costUsd,
-    sessionId,
+    sessionId: publicSessionRef(sessionId),
     ...(recordingFile !== undefined ? { recordingFile } : {}),
     ...(errorMsg !== undefined ? { error: errorMsg } : {}),
   };

@@ -4,8 +4,21 @@ let client: Anthropic | undefined;
 
 /** Lazily construct the shared Anthropic client (env/profile credentials). */
 export function anthropicClient(): Anthropic {
-  client ??= new Anthropic();
+  const workspaceId = process.env.ANTHROPIC_WORKSPACE_ID;
+  client ??= new Anthropic({
+    ...(workspaceId
+      ? { defaultHeaders: { "anthropic-workspace-id": workspaceId } }
+      : {}),
+  });
   return client;
+}
+
+/** Validate credentials and workspace selection without spending model tokens. */
+export async function preflightAnthropic(): Promise<void> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error("ANTHROPIC_API_KEY is not set");
+  }
+  await anthropicClient().models.list({ limit: 1 });
 }
 
 /**
