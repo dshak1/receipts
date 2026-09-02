@@ -17,6 +17,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - name: Build landing site
+        run: npm ci --prefix site --no-audit --no-fund && npm run build --prefix site
       - run: npm audit --omit=dev --audit-level=high
       - name: Verify package contents
         run: npm pack --workspace packages/harness --dry-run

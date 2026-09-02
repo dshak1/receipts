@@ -6,6 +6,8 @@
 
 [Open the live demo target](https://dshak1.github.io/receipts/demo-target/) · [View the source](https://github.com/dshak1/receipts) · [Run it in CI](#github-action)
 
+[Open the product landing page](https://dshak1.github.io/receipts/) · [Landing design handoff](site/README.md)
+
 > Your agent said it succeeded. Did it? Show me the receipts.
 
 ## The problem
@@ -148,3 +150,13 @@ Every run records the task-spec digest and git SHA, starts with a scripted posit
 Built for the [Solari](https://github.com/solari-sdk/solari-cookbook) build challenge by [Diar Shakimov](https://github.com/dshak1). The methodology (positive controls, flake rates as a property of the script, typed verdicts, evidence bundles) comes from production experience running automated reliability testing against a AAA game client, where "the tool reported a success it did not have" is a bug family with a name.
 
 MIT licensed.
+
+## Landing design provenance
+
+The landing page uses the three supplied CloudFront motion studies as its hero source material,
+with ten selectable scene treatments and three surface recipes. Its Button, Card, Tabs, and BlurText
+interactions are documented source-owned patterns from [shadcn/ui](https://ui.shadcn.com/docs/components)
+and [React Bits](https://reactbits.dev/text-animations/blur-text); exact links and implementation
+notes live in [`site/README.md`](site/README.md). The visual composition and Receipts tokens are
+custom to this project. The public surface intentionally uses fixture language where a provider
+run has not yet been completed.

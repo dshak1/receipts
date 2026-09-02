@@ -7,6 +7,8 @@
   ],
   "scripts": {
     "build": "npm run build --workspace packages/harness",
+    "site:build": "npm run build --prefix site",
+    "site:dev": "npm run dev --prefix site",
     "test": "npm test --workspace packages/harness",
     "typecheck": "npm run typecheck --workspace packages/harness",
     "check": "npm run typecheck && npm test && npm run build"
